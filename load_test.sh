@@ -1,24 +1,28 @@
 #!/bin/bash
 
 function duckTest() {
-  for i in {0..10}; do
-    echo -en "Waiting for $(( 10 - ${i} )) seconds \033[0K\r"
+  for i in {1..10}; do
+    echo -en "Waiting $(( 10 - ${i} )) seconds \033[0K\r"
     sleep 1
   done
-  for i in {1..5}; do
-    echo -e "\n====="
-    date +"%H:%M:%S:%N"
-    echo "Generate"
-    output=$(curl -sS -X GET localhost:8080/ducks/generate)
+  total=0
+  echo "===================="
+  for i in {1..10}; do
+    date +"%H:%M:%S"
+    echo -en "Generate iteration [${i}]\033[0K\r"
+    total=$(( total + $(curl -sS -X GET localhost:8080/ducks/generate?sort=false) ))
+    echo -en "Generation [${i}] took $(curl -sS -X GET localhost:8080/ducks/generate)ms\n"
     docker stats --no-stream --format "CPU:{{.CPUPerc}}\tMem:{{.MemUsage}}" $1
-    echo "====="
   done
-  echo ""
+  echo "====="
   echo "Get all ducks"
-  curl -sS -X GET localhost:8080/ducks/
-  echo ""
-  echo "Delete ducks"
+  out=$(curl -sS -X GET localhost:8080/ducks)
+  echo "Sort all ducks"
+  echo "Sorting ducks took $(curl -sS -X GET localhost:8080/ducks/sort)ms"
+  echo "Delete all ducks"
   curl -sS -X DELETE localhost:8080/ducks
+  avg=$(( ${total}/10 ))
+  echo "Average generate took ${avg}ms for $1"
 }
 
 hotspot_name="hotspot"
@@ -49,18 +53,18 @@ fi
 
 x-terminal-emulator -e docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 
-echo -e "\n\nStarting HotSpot test"
+echo -e "\nStarting HotSpot test"
 echo "========================================"
 docker run --name ${hotspot_name} -p 8080:8080 --network ${network_name} -d performance-hotspot:latest
-duckTest ${hotspot_name}
-echo "Stopping container [${openj9_name}] and waiting 2 seconds"
+time duckTest ${hotspot_name}
+echo "Stopping container [${hotspot_name}] and waiting 2 seconds"
 docker stop ${hotspot_name}
 sleep 2
 
 echo -e "\n\nStarting OpenJ9 test"
 echo "========================================"
 docker run --name ${openj9_name} -p 8080:8080 --network ${network_name} -d performance-openj9:latest
-duckTest ${openj9_name}
+time duckTest ${openj9_name}
 echo "Stopping container [${openj9_name}] and waiting 2 seconds"
 docker stop ${openj9_name}
 sleep 2
