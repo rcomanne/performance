@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -31,12 +30,12 @@ public class DuckController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Duck> findById(@PathVariable("id") Long id) {
+    public ResponseEntity<Duck> findById(@PathVariable("id") String id) {
         log.info("getting duck with id " + id);
-        return ResponseEntity.ok(duckService.findById(id));
+        return ResponseEntity.ok(duckService.findById(Long.parseLong(id)));
     }
 
-    @PostMapping
+    @GetMapping("/generate")
     public ResponseEntity<List<Duck>> createDucks() {
         final List<String> names = List.of("Arie", "Donald", "Dagobert", "Edwin", "Frank", "Guus", "Katrien", "Kwik", "Kwek", "Kwak", "Niels", "Onno", "Ralph", "Sietse");
         final List<String> colours = List.of("Black", "Brown", "Green", "Grey");
@@ -61,8 +60,8 @@ public class DuckController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteDuck(@PathVariable("id") Long id) {
+    public void deleteDuck(@PathVariable("id") String id) {
         log.info("deleting duck with id " + id);
-        duckService.deleteDuck(id);
+        duckService.deleteDuck(Long.parseLong(id));
     }
 }

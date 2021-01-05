@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 echo "Building Docker images"
 docker build -t jre-alpine:11-hotspot --file hotspot/Dockerfile .

@@ -1,5 +1,26 @@
 #!/bin/bash
 
+function duckTest() {
+  for i in {0..10}; do
+    echo -en "Waiting for $(( 10 - ${i} )) seconds \033[0K\r"
+    sleep 1
+  done
+  for i in {1..5}; do
+    echo -e "\n====="
+    date +"%H:%M:%S:%N"
+    echo "Generate"
+    output=$(curl -sS -X GET localhost:8080/ducks/generate)
+    docker stats --no-stream --format "CPU:{{.CPUPerc}}\tMem:{{.MemUsage}}" $1
+    echo "====="
+  done
+  echo ""
+  echo "Get all ducks"
+  curl -sS -X GET localhost:8080/ducks/
+  echo ""
+  echo "Delete ducks"
+  curl -sS -X DELETE localhost:8080/ducks
+}
+
 hotspot_name="hotspot"
 openj9_name="openj9"
 docker rm -f ${hotspot_name} ${openj9_name}
@@ -28,29 +49,18 @@ fi
 
 x-terminal-emulator -e docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 
-echo "Starting HotSpot test"
+echo -e "\n\nStarting HotSpot test"
+echo "========================================"
 docker run --name ${hotspot_name} -p 8080:8080 --network ${network_name} -d performance-hotspot:latest
-# No need to wait in the loop - docker stats is slow
-for i in {0..15}; do
-  date +"%H:%M:%S:%N"
-  docker stats --no-stream --format "CPU:{{.CPUPerc}}\tMem:{{.MemUsage}}" ${hotspot_name}
-done
-echo "Stopping container [${hotspot_name}] and waiting 2 seconds"
+duckTest ${hotspot_name}
+echo "Stopping container [${openj9_name}] and waiting 2 seconds"
 docker stop ${hotspot_name}
 sleep 2
 
-echo "Starting OpenJ9 test"
+echo -e "\n\nStarting OpenJ9 test"
+echo "========================================"
 docker run --name ${openj9_name} -p 8080:8080 --network ${network_name} -d performance-openj9:latest
-# No need to wait in the loop - docker stats is slow
-for i in {0..15}; do
-  date +"%H:%M:%S:%N"
-  docker stats --no-stream --format "CPU:{{.CPUPerc}}\tMem:{{.MemUsage}}" ${openj9_name}
-done
+duckTest ${openj9_name}
 echo "Stopping container [${openj9_name}] and waiting 2 seconds"
 docker stop ${openj9_name}
 sleep 2
-
-echo "HotSpot startup time (from log)"
-docker logs ${hotspot_name} | grep seconds
-echo "OpenJ9 startup time (from log)"
-docker logs ${openj9_name} | grep seconds
